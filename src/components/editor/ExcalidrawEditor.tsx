@@ -8,7 +8,7 @@ const ExcalidrawInner = dynamic(() => import('./ExcalidrawInner'), { ssr: false 
 interface ExcalidrawEditorProps {
   initialScene: string | null
   onAPIReady: (api: ExcalidrawImperativeAPI) => void
-  onChange: (sceneJson: string) => void
+  onDirty: () => void
   readOnly?: boolean
 }
 

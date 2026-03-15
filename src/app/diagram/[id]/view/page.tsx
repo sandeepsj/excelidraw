@@ -110,7 +110,7 @@ export default function ViewPage() {
         <ExcalidrawEditor
           initialScene={scene}
           onAPIReady={(_api: ExcalidrawImperativeAPI) => {}}
-          onChange={() => {}}
+          onDirty={() => {}}
           readOnly
         />
       </div>

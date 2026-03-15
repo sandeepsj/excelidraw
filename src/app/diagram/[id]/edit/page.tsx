@@ -21,11 +21,11 @@ export default function EditPage() {
   const router = useRouter()
 
   const [diagram, setDiagram] = useState<Diagram | null>(null)
-  const [initialScene, setInitialScene] = useState<string | null>(null)
+  const [initialScene, setInitialScene] = useState<string | null | undefined>(undefined)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [notFound, setNotFound] = useState(false)
 
-  const { scheduleScene, setExcalidrawAPI } = useAutoSave(id, setSaveStatus)
+  const { markDirty, setExcalidrawAPI } = useAutoSave(id, setSaveStatus)
 
   useEffect(() => {
     if (authLoading) return
@@ -53,13 +53,6 @@ export default function EditPage() {
     [setExcalidrawAPI]
   )
 
-  const handleChange = useCallback(
-    (sceneJson: string) => {
-      scheduleScene(sceneJson)
-    },
-    [scheduleScene]
-  )
-
   if (notFound) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -68,7 +61,7 @@ export default function EditPage() {
     )
   }
 
-  if (!diagram) {
+  if (!diagram || initialScene === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Loading…</p>
@@ -83,7 +76,7 @@ export default function EditPage() {
         <ExcalidrawEditor
           initialScene={initialScene}
           onAPIReady={handleAPIReady}
-          onChange={handleChange}
+          onDirty={markDirty}
         />
       </div>
     </div>
