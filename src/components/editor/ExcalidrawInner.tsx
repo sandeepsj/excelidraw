@@ -65,11 +65,13 @@ export default function ExcalidrawInner({
       } else if (prevTool) {
         shapeStrokeWidthRef.current = appState.currentItemStrokeWidth ?? DEFAULT_SHAPE_STROKE_WIDTH
       }
-      // Apply the stroke width of the tool we're entering
+      // Defer updateScene so it runs after Excalidraw finishes its own onChange processing
       if (currentTool === 'freedraw') {
-        apiRef.current?.updateScene({ appState: { currentItemStrokeWidth: freedrawStrokeWidthRef.current } })
+        const w = freedrawStrokeWidthRef.current
+        setTimeout(() => apiRef.current?.updateScene({ appState: { currentItemStrokeWidth: w } }), 0)
       } else if (prevTool === 'freedraw') {
-        apiRef.current?.updateScene({ appState: { currentItemStrokeWidth: shapeStrokeWidthRef.current } })
+        const w = shapeStrokeWidthRef.current
+        setTimeout(() => apiRef.current?.updateScene({ appState: { currentItemStrokeWidth: w } }), 0)
       }
       lastToolRef.current = currentTool
     }

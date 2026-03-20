@@ -71,7 +71,7 @@ export default function EditPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-dvh">
       <EditorHeader
         diagramId={id}
         title={diagram.title}
