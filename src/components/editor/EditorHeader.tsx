@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AutoSaveIndicator } from './AutoSaveIndicator'
 import { updateDiagram } from '@/lib/firebase/firestore'
-import { ArrowLeft, Share2, Check } from 'lucide-react'
+import { ArrowLeft, Share2, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
@@ -14,9 +14,11 @@ interface EditorHeaderProps {
   diagramId: string
   title: string
   saveStatus: SaveStatus
+  panelVisible: boolean
+  onTogglePanel: () => void
 }
 
-export function EditorHeader({ diagramId, title, saveStatus }: EditorHeaderProps) {
+export function EditorHeader({ diagramId, title, saveStatus, panelVisible, onTogglePanel }: EditorHeaderProps) {
   const router = useRouter()
   const [editingTitle, setEditingTitle] = useState(false)
   const [localTitle, setLocalTitle] = useState(title)
@@ -37,13 +39,8 @@ export function EditorHeader({ diagramId, title, saveStatus }: EditorHeaderProps
   }
 
   return (
-    <header className="flex items-center gap-3 px-4 h-12 border-b bg-background z-10">
-      <Button
-        size="sm"
-        variant="ghost"
-        className="h-8 px-2"
-        onClick={() => router.push('/dashboard')}
-      >
+    <header className="flex items-center gap-3 px-4 h-12 border-b bg-background z-10 shrink-0">
+      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => router.push('/dashboard')}>
         <ArrowLeft className="h-4 w-4" />
       </Button>
 
@@ -67,17 +64,20 @@ export function EditorHeader({ diagramId, title, saveStatus }: EditorHeaderProps
 
       <AutoSaveIndicator status={saveStatus} />
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 px-2"
+          onClick={onTogglePanel}
+          title={panelVisible ? 'Hide properties panel' : 'Show properties panel'}
+        >
+          {panelVisible
+            ? <PanelLeftClose className="h-4 w-4" />
+            : <PanelLeftOpen className="h-4 w-4" />}
+        </Button>
         <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={handleShare}>
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5" /> Copied
-            </>
-          ) : (
-            <>
-              <Share2 className="h-3.5 w-3.5" /> Share
-            </>
-          )}
+          {copied ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Share2 className="h-3.5 w-3.5" /> Share</>}
         </Button>
       </div>
     </header>

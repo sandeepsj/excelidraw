@@ -24,6 +24,7 @@ export default function EditPage() {
   const [initialScene, setInitialScene] = useState<string | null | undefined>(undefined)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [notFound, setNotFound] = useState(false)
+  const [panelVisible, setPanelVisible] = useState(true)
 
   const { markDirty, setExcalidrawAPI } = useAutoSave(id, setSaveStatus)
 
@@ -71,12 +72,20 @@ export default function EditPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <EditorHeader diagramId={id} title={diagram.title} saveStatus={saveStatus} />
-      <div className="flex-1 overflow-hidden">
+      <EditorHeader
+        diagramId={id}
+        title={diagram.title}
+        saveStatus={saveStatus}
+        panelVisible={panelVisible}
+        onTogglePanel={() => setPanelVisible((v) => !v)}
+      />
+      {/* min-h-0 is critical: prevents flex child from overflowing and pushing undo/redo off-screen */}
+      <div className="flex-1 min-h-0">
         <ExcalidrawEditor
           initialScene={initialScene}
           onAPIReady={handleAPIReady}
           onDirty={markDirty}
+          panelVisible={panelVisible}
         />
       </div>
     </div>

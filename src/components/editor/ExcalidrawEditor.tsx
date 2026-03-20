@@ -9,9 +9,10 @@ interface ExcalidrawEditorProps {
   initialScene: string | null
   onAPIReady: (api: ExcalidrawImperativeAPI) => void
   onDirty: () => void
+  panelVisible?: boolean
   readOnly?: boolean
 }
 
 export function ExcalidrawEditor(props: ExcalidrawEditorProps) {
-  return <ExcalidrawInner {...props} />
+  return <ExcalidrawInner {...props} panelVisible={props.panelVisible ?? true} />
 }
