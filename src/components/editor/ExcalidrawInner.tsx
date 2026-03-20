@@ -90,6 +90,13 @@ export default function ExcalidrawInner({
   const handleAPIReady = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api
     onAPIReady(api)
+    // Lock whatever tool is active on load
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appState = api.getAppState() as any
+    if (!appState.activeTool?.locked) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setTimeout(() => api.updateScene({ appState: { activeTool: { ...appState.activeTool, locked: true } } as any }), 0)
+    }
   }, [onAPIReady])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,6 +120,17 @@ export default function ExcalidrawInner({
         setTimeout(() => apiRef.current?.updateScene({ appState: { currentItemStrokeWidth: w } }), 0)
       }
       lastToolRef.current = currentTool
+
+      // Auto-lock drawing tools so they stay active after each stroke
+      const nonDrawingTools = ['selection', 'hand', 'eraser']
+      if (currentTool && !nonDrawingTools.includes(currentTool) && !appState.activeTool?.locked) {
+        setTimeout(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          apiRef.current?.updateScene({
+            appState: { activeTool: { ...appState.activeTool, locked: true } as any },
+          })
+        }, 0)
+      }
     }
 
     // Signal dirty only when elements actually change
