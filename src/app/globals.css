@@ -127,12 +127,3 @@
   }
 }
 
-/* Excalidraw: hide the properties/actions panel when .hide-panels is set */
-.hide-panels .App-menu_top .App-toolbar-content,
-.hide-panels .layer-ui__wrapper .App-menu__action,
-.hide-panels .panelColumn,
-.hide-panels section[aria-labelledby="shape-actions-title"],
-.hide-panels .SelectedShapeActions,
-.hide-panels .ShapesSwitcher ~ div {
-  display: none !important;
-}

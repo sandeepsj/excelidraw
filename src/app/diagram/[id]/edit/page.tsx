@@ -24,7 +24,7 @@ export default function EditPage() {
   const [initialScene, setInitialScene] = useState<string | null | undefined>(undefined)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [notFound, setNotFound] = useState(false)
-  const [panelVisible, setPanelVisible] = useState(true)
+  const [panelVisible, setPanelVisible] = useState(false)
 
   const { markDirty, setExcalidrawAPI } = useAutoSave(id, setSaveStatus)
 
