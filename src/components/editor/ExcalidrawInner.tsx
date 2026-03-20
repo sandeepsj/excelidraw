@@ -16,12 +16,10 @@ interface ExcalidrawInnerProps {
   readOnly?: boolean
 }
 
-// Selectors for the tool-specific properties panel across desktop + mobile layouts
+// The left properties panel (Stroke / Background / Stroke width / Opacity / Layers)
+// .App-menu__left = position:absolute; width:12.5rem panel on the left side
 const PANEL_SELECTORS = [
-  '.App-menu_top__left',          // left column of top menu (hamburger + actions)
-  '.layer-ui__wrapper .Island',   // floating Island panels (properties)
-  'section[aria-labelledby]',     // accessible sections (stroke/fill/opacity)
-  '.App-toolbar--mobile .Island', // mobile toolbar island
+  '.App-menu__left',
 ]
 
 export default function ExcalidrawInner({
@@ -74,12 +72,17 @@ export default function ExcalidrawInner({
     // Re-apply after Excalidraw finishes rendering (it can re-mount panels)
     const timer = setTimeout(applyVisibility, 300)
 
-    // Watch for DOM changes (Excalidraw may re-render panels on interaction)
-    const observer = new MutationObserver(applyVisibility)
-    observer.observe(containerRef.current, { childList: true, subtree: true })
+    // Re-apply if Excalidraw re-mounts the panel (e.g. on tool switch)
+    let rafId: number
+    const observer = new MutationObserver(() => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(applyVisibility)
+    })
+    observer.observe(containerRef.current, { childList: true, subtree: false })
 
     return () => {
       clearTimeout(timer)
+      cancelAnimationFrame(rafId)
       observer.disconnect()
     }
   }, [panelVisible])
