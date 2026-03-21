@@ -93,10 +93,8 @@ export default function ExcalidrawInner({
     // Lock whatever tool is active on load
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const appState = api.getAppState() as any
-    if (!appState.activeTool?.locked) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setTimeout(() => api.updateScene({ appState: { activeTool: { ...appState.activeTool, locked: true } } as any }), 0)
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setTimeout(() => api.updateScene({ appState: { activeTool: { ...appState.activeTool, locked: true }, currentItemFontSize: 28 } as any }), 0)
   }, [onAPIReady])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -127,3 +127,9 @@
   }
 }
 
+/* Text tool: larger minimum textarea size for tablet/stylus input */
+.excalidraw .excalidraw-wysiwyg {
+  min-height: 1.5em;
+  min-width: 8em;
+}
+
