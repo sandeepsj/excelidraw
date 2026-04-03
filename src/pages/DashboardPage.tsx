@@ -1,33 +1,22 @@
-'use client'
-
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useDiagrams } from '@/lib/hooks/useDiagrams'
-import { signOut } from '@/lib/firebase/auth'
 import { DiagramGrid } from '@/components/dashboard/DiagramGrid'
 import { SearchBar } from '@/components/dashboard/SearchBar'
 import { Button } from '@/components/ui/button'
 import { Plus, LogOut } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const { diagrams, loading: diagramsLoading } = useDiagrams(user?.uid ?? null)
+  const { user, driveToken, signOut } = useAuth()
+  const navigate = useNavigate()
+  const { diagrams, loading, refresh } = useDiagrams(user?.uid ?? null, driveToken)
   const [search, setSearch] = useState('')
-
-  useEffect(() => {
-    if (!authLoading && !user) router.replace('/login')
-  }, [user, authLoading, router])
 
   const filtered = useMemo(
     () =>
       search.trim()
-        ? diagrams.filter((d) =>
-            d.title.toLowerCase().includes(search.toLowerCase())
-          )
+        ? diagrams.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()))
         : diagrams,
     [diagrams, search]
   )
@@ -35,7 +24,16 @@ export default function DashboardPage() {
   const pinned = filtered.filter((d) => d.pinned)
   const rest = filtered.filter((d) => !d.pinned)
 
-  if (authLoading || !user) return null
+  if (!driveToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-muted-foreground">Drive access lost. Please sign in again.</p>
+          <Button size="sm" onClick={signOut}>Sign in again</Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +43,7 @@ export default function DashboardPage() {
           <SearchBar value={search} onChange={setSearch} />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" onClick={() => router.push('/diagram/new')} className="gap-1.5">
+          <Button size="sm" onClick={() => navigate('/diagram/new')} className="gap-1.5">
             <Plus className="h-4 w-4" />
             New
           </Button>
@@ -59,15 +57,14 @@ export default function DashboardPage() {
         {pinned.length > 0 && (
           <section>
             <h2 className="text-sm font-medium text-muted-foreground mb-3">Pinned</h2>
-            <DiagramGrid diagrams={pinned} loading={false} />
+            <DiagramGrid diagrams={pinned} loading={false} driveToken={driveToken} onRefresh={refresh} />
           </section>
         )}
-
         <section>
           {pinned.length > 0 && (
             <h2 className="text-sm font-medium text-muted-foreground mb-3">All diagrams</h2>
           )}
-          <DiagramGrid diagrams={rest} loading={diagramsLoading} />
+          <DiagramGrid diagrams={rest} loading={loading} driveToken={driveToken} onRefresh={refresh} />
         </section>
       </main>
     </div>

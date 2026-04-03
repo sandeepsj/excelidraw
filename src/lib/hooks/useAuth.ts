@@ -2,9 +2,10 @@
 
 import { useContext } from 'react'
 import { AuthContext } from '@/components/auth/AuthProvider'
+import type { AppUser } from '@/types/user'
+
+export type { AppUser }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) return { user: null, loading: true }
-  return ctx
+  return useContext(AuthContext)
 }

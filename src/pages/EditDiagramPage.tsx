@@ -1,12 +1,7 @@
-'use client'
-
-export const dynamic = 'force-dynamic'
-
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { getDiagram } from '@/lib/firebase/firestore'
-import { downloadScene } from '@/lib/firebase/storage'
+import { getDiagramMetadata, getDiagramScene } from '@/lib/drive/diagrams'
 import { useAutoSave } from '@/lib/hooks/useAutoSave'
 import { ExcalidrawEditor } from '@/components/editor/ExcalidrawEditor'
 import { EditorHeader } from '@/components/editor/EditorHeader'
@@ -15,10 +10,10 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
-export default function EditPage() {
+export default function EditDiagramPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, loading: authLoading } = useAuth()
-  const router = useRouter()
+  const { user, driveToken, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const [diagram, setDiagram] = useState<Diagram | null>(null)
   const [initialScene, setInitialScene] = useState<string | null | undefined>(undefined)
@@ -26,26 +21,27 @@ export default function EditPage() {
   const [notFound, setNotFound] = useState(false)
   const [panelVisible, setPanelVisible] = useState(false)
 
-  const { markDirty, setExcalidrawAPI } = useAutoSave(id, setSaveStatus)
+  const handleAuthError = useCallback(() => signOut(), [signOut])
+
+  const { markDirty, setExcalidrawAPI } = useAutoSave(id ?? null, driveToken, setSaveStatus, handleAuthError)
 
   useEffect(() => {
-    if (authLoading) return
-    if (!user) { router.replace('/login'); return }
+    if (!user || !driveToken || !id) return
 
     const load = async () => {
-      const d = await getDiagram(id)
+      const d = await getDiagramMetadata(driveToken, id)
       if (!d) { setNotFound(true); return }
-      if (d.ownerId !== user.uid) { router.replace(`/diagram/${id}/view`); return }
+      if (d.ownerId !== user.uid) { navigate(`/diagram/${id}/view`); return }
       setDiagram(d)
       try {
-        const scene = await downloadScene(id)
+        const scene = await getDiagramScene(driveToken, id)
         setInitialScene(scene)
       } catch {
         setInitialScene(null)
       }
     }
     load()
-  }, [id, user, authLoading, router])
+  }, [id, user, driveToken, navigate])
 
   const handleAPIReady = useCallback(
     (api: ExcalidrawImperativeAPI) => {
@@ -62,7 +58,7 @@ export default function EditPage() {
     )
   }
 
-  if (!diagram || initialScene === undefined) {
+  if (!diagram || initialScene === undefined || !driveToken || !id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Loading…</p>
@@ -77,9 +73,9 @@ export default function EditPage() {
         title={diagram.title}
         saveStatus={saveStatus}
         panelVisible={panelVisible}
+        driveToken={driveToken}
         onTogglePanel={() => setPanelVisible((v) => !v)}
       />
-      {/* min-h-0 is critical: prevents flex child from overflowing and pushing undo/redo off-screen */}
       <div className="flex-1 min-h-0">
         <ExcalidrawEditor
           initialScene={initialScene}

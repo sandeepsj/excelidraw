@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AutoSaveIndicator } from './AutoSaveIndicator'
-import { updateDiagram } from '@/lib/firebase/firestore'
+import { updateDiagramMetadata } from '@/lib/drive/diagrams'
 import { ArrowLeft, Share2, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
@@ -15,11 +15,12 @@ interface EditorHeaderProps {
   title: string
   saveStatus: SaveStatus
   panelVisible: boolean
+  driveToken: string
   onTogglePanel: () => void
 }
 
-export function EditorHeader({ diagramId, title, saveStatus, panelVisible, onTogglePanel }: EditorHeaderProps) {
-  const router = useRouter()
+export function EditorHeader({ diagramId, title, saveStatus, panelVisible, driveToken, onTogglePanel }: EditorHeaderProps) {
+  const navigate = useNavigate()
   const [editingTitle, setEditingTitle] = useState(false)
   const [localTitle, setLocalTitle] = useState(title)
   const [copied, setCopied] = useState(false)
@@ -27,7 +28,7 @@ export function EditorHeader({ diagramId, title, saveStatus, panelVisible, onTog
   const handleTitleBlur = async () => {
     setEditingTitle(false)
     if (localTitle !== title && localTitle.trim()) {
-      await updateDiagram(diagramId, { title: localTitle.trim() })
+      await updateDiagramMetadata(driveToken, diagramId, { title: localTitle.trim() })
     }
   }
 
@@ -40,7 +41,7 @@ export function EditorHeader({ diagramId, title, saveStatus, panelVisible, onTog
 
   return (
     <header className="flex items-center gap-3 px-4 h-12 border-b bg-background z-10 shrink-0">
-      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => router.push('/dashboard')}>
+      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => navigate('/dashboard')}>
         <ArrowLeft className="h-4 w-4" />
       </Button>
 

@@ -1,9 +1,7 @@
-'use client'
-
-import dynamic from 'next/dynamic'
+import { lazy, Suspense } from 'react'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 
-const ExcalidrawInner = dynamic(() => import('./ExcalidrawInner'), { ssr: false })
+const ExcalidrawInner = lazy(() => import('./ExcalidrawInner'))
 
 interface ExcalidrawEditorProps {
   initialScene: string | null
@@ -14,5 +12,9 @@ interface ExcalidrawEditorProps {
 }
 
 export function ExcalidrawEditor(props: ExcalidrawEditorProps) {
-  return <ExcalidrawInner {...props} panelVisible={props.panelVisible ?? true} />
+  return (
+    <Suspense fallback={null}>
+      <ExcalidrawInner {...props} panelVisible={props.panelVisible ?? true} />
+    </Suspense>
+  )
 }

@@ -1,27 +1,22 @@
-'use client'
-
-export const dynamic = 'force-dynamic'
-
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { getDiagram } from '@/lib/firebase/firestore'
-import { downloadScene } from '@/lib/firebase/storage'
+import { getDiagramMetadata, getDiagramScene, duplicateDiagram } from '@/lib/drive/diagrams'
 import { ExcalidrawEditor } from '@/components/editor/ExcalidrawEditor'
 import { Button } from '@/components/ui/button'
-import { Edit, GitFork } from 'lucide-react'
+import { Edit, Copy } from 'lucide-react'
 import type { Diagram } from '@/types/diagram'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 
-export default function ViewPage() {
+export default function ViewDiagramPage() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
-  const router = useRouter()
+  const { user, driveToken } = useAuth()
+  const navigate = useNavigate()
 
   const [diagram, setDiagram] = useState<Diagram | null>(null)
   const [scene, setScene] = useState<string | null>(null)
   const [isEmbedded, setIsEmbedded] = useState(false)
-  const [forking, setForking] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
@@ -29,39 +24,33 @@ export default function ViewPage() {
   }, [])
 
   useEffect(() => {
+    if (!user || !driveToken || !id) return
+
     const load = async () => {
-      const d = await getDiagram(id)
+      const d = await getDiagramMetadata(driveToken, id)
       if (!d) { setNotFound(true); return }
+      if (d.ownerId !== user.uid) { navigate('/dashboard'); return }
       setDiagram(d)
       try {
-        const s = await downloadScene(id)
+        const s = await getDiagramScene(driveToken, id)
         setScene(s)
       } catch {
         setScene(null)
       }
     }
     load()
-  }, [id])
+  }, [id, user, driveToken, navigate])
 
-  const handleFork = async () => {
-    if (!user) { router.push('/login'); return }
-    setForking(true)
+  const handleDuplicate = async () => {
+    if (!user || !driveToken || !id) return
+    setDuplicating(true)
     try {
-      const token = await user.getIdToken()
-      const res = await fetch(`/diagram/${id}/api/fork`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Fork failed')
-      const { newId } = await res.json()
-      router.push(`/diagram/${newId}/edit`)
-    } catch (e) {
-      console.error(e)
-      setForking(false)
+      const newId = await duplicateDiagram(driveToken, id, user)
+      navigate(`/diagram/${newId}/edit`)
+    } catch {
+      setDuplicating(false)
     }
   }
-
-  const isOwner = user?.uid === diagram?.ownerId
 
   const CTA = (
     <div
@@ -71,15 +60,12 @@ export default function ViewPage() {
           : 'absolute top-4 right-4'
       }`}
     >
-      {isOwner ? (
-        <Button size="sm" onClick={() => router.push(`/diagram/${id}/edit`)} className="gap-1.5">
-          <Edit className="h-4 w-4" /> Edit it
-        </Button>
-      ) : (
-        <Button size="sm" onClick={handleFork} disabled={forking} className="gap-1.5">
-          <GitFork className="h-4 w-4" /> {forking ? 'Forking…' : 'Fork it'}
-        </Button>
-      )}
+      <Button size="sm" onClick={() => navigate(`/diagram/${id}/edit`)} className="gap-1.5">
+        <Edit className="h-4 w-4" /> Edit
+      </Button>
+      <Button size="sm" variant="outline" onClick={handleDuplicate} disabled={duplicating} className="gap-1.5">
+        <Copy className="h-4 w-4" /> {duplicating ? 'Duplicating…' : 'Duplicate'}
+      </Button>
     </div>
   )
 

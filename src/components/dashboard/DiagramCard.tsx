@@ -1,35 +1,39 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pin, PinOff, Trash2, ExternalLink } from 'lucide-react'
-import { updateDiagram, deleteDiagram } from '@/lib/firebase/firestore'
+import { updateDiagramMetadata, deleteDiagram } from '@/lib/drive/diagrams'
 import type { Diagram } from '@/types/diagram'
 
 interface DiagramCardProps {
   diagram: Diagram
+  driveToken: string
+  onRefresh: () => void
 }
 
-export function DiagramCard({ diagram }: DiagramCardProps) {
-  const router = useRouter()
+export function DiagramCard({ diagram, driveToken, onRefresh }: DiagramCardProps) {
+  const navigate = useNavigate()
   const [deleting, setDeleting] = useState(false)
 
   const handlePin = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    await updateDiagram(diagram.id, { pinned: !diagram.pinned })
+    await updateDiagramMetadata(driveToken, diagram.id, { pinned: !diagram.pinned })
+    onRefresh()
   }
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm(`Delete "${diagram.title}"?`)) return
     setDeleting(true)
-    await deleteDiagram(diagram.id)
+    await deleteDiagram(driveToken, diagram.id)
+    onRefresh()
   }
 
-  const handleOpen = () => router.push(`/diagram/${diagram.id}/edit`)
+  const handleOpen = () => navigate(`/diagram/${diagram.id}/edit`)
   const handleView = (e: React.MouseEvent) => {
     e.stopPropagation()
     window.open(`/diagram/${diagram.id}/view`, '_blank')
@@ -42,18 +46,9 @@ export function DiagramCard({ diagram }: DiagramCardProps) {
     >
       <CardContent className="p-0">
         <div className="relative w-full h-36 bg-gray-50 rounded-t-lg overflow-hidden">
-          {diagram.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={diagram.thumbnailUrl}
-              alt={diagram.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-300 text-sm">
-              No preview
-            </div>
-          )}
+          <div className="flex items-center justify-center h-full text-gray-300 text-sm">
+            No preview
+          </div>
           {diagram.pinned && (
             <Badge className="absolute top-2 left-2 text-xs">Pinned</Badge>
           )}
@@ -61,7 +56,7 @@ export function DiagramCard({ diagram }: DiagramCardProps) {
         <div className="p-3">
           <h3 className="font-medium text-sm truncate">{diagram.title}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {diagram.updatedAt?.toDate?.()?.toLocaleDateString() ?? ''}
+            {new Date(diagram.updatedAt).toLocaleDateString()}
           </p>
         </div>
       </CardContent>

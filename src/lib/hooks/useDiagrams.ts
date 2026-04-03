@@ -1,28 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { listenUserDiagrams } from '@/lib/firebase/firestore'
+import { useState, useEffect, useCallback } from 'react'
+import { listDiagrams } from '@/lib/drive/diagrams'
 import type { Diagram } from '@/types/diagram'
 
-export function useDiagrams(userId: string | null) {
+export function useDiagrams(userId: string | null, driveToken: string | null) {
   const [diagrams, setDiagrams] = useState<Diagram[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!userId) {
+  const load = useCallback(async () => {
+    if (!userId || !driveToken) {
       setDiagrams([])
       setLoading(false)
       return
     }
-
-    setLoading(true)
-    const unsubscribe = listenUserDiagrams(userId, (data) => {
+    try {
+      const data = await listDiagrams(driveToken)
       setDiagrams(data)
+    } catch {
+      // Token may have expired; leave stale data, caller can refresh
+    } finally {
       setLoading(false)
-    })
+    }
+  }, [userId, driveToken])
 
-    return unsubscribe
-  }, [userId])
+  // Initial load
+  useEffect(() => {
+    setLoading(true)
+    load()
+  }, [load])
 
-  return { diagrams, loading }
+  // Re-fetch when window regains focus (covers tab switching, page return)
+  useEffect(() => {
+    const onFocus = () => load()
+    window.addEventListener('visibilitychange', onFocus)
+    return () => window.removeEventListener('visibilitychange', onFocus)
+  }, [load])
+
+  return { diagrams, loading, refresh: load }
 }
