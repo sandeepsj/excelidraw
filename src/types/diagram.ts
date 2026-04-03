@@ -8,7 +8,8 @@ export interface Diagram {
   updatedAt: string    // ISO string (Drive modifiedTime)
   pinned: boolean
   isPublic: boolean
-  thumbnailUrl: null   // Not supported; appDataFolder files have no public URL
+  thumbnailUrl: null   // Not implemented
+  driveUrl: string | null  // webViewLink from Drive API — opens file in Drive UI
 }
 
 export type DiagramCreate = Pick<Diagram, 'title' | 'pinned' | 'isPublic'>

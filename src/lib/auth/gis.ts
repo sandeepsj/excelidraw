@@ -3,7 +3,7 @@
 // All exports are safe to call before the script loads — they wait internally.
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata email profile'
+const SCOPE = 'https://www.googleapis.com/auth/drive.file email profile'
 
 /** Resolves when window.google is available (GIS script has loaded). */
 export function whenReady(): Promise<void> {

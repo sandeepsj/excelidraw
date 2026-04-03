@@ -24,6 +24,7 @@ function fileToDiagram(file: DriveFileMeta): Diagram {
     pinned: p.pinned === 'true',
     isPublic: p.isPublic === 'true',
     thumbnailUrl: null,
+    driveUrl: file.webViewLink ?? null,
   }
 }
 
@@ -122,7 +123,7 @@ export async function getDiagramMetadata(
 ): Promise<Diagram | null> {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,properties,modifiedTime,createdTime&spaces=appDataFolder`,
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,properties,modifiedTime,createdTime,webViewLink`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
     if (res.status === 404) return null

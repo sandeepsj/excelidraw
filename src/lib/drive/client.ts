@@ -30,12 +30,13 @@ export interface DriveFileMeta {
   properties: DriveFileProperties
   modifiedTime: string   // ISO string
   createdTime: string    // ISO string
+  webViewLink?: string   // Link to open the file in Google Drive UI
 }
 
-/** List all diagram files in appDataFolder */
+/** List all diagram files created by this app */
 export async function driveListFiles(token: string): Promise<DriveFileMeta[]> {
-  const fields = 'files(id,name,properties,modifiedTime,createdTime)'
-  const url = `${DRIVE_API}/files?spaces=appDataFolder&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime+desc&pageSize=1000`
+  const fields = 'files(id,name,properties,modifiedTime,createdTime,webViewLink)'
+  const url = `${DRIVE_API}/files?spaces=drive&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime+desc&pageSize=1000`
   const res = await checkResponse(
     await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
   )
@@ -53,7 +54,7 @@ export async function driveGetContent(fileId: string, token: string): Promise<st
   return res.text()
 }
 
-/** Create a new file in appDataFolder with properties + text content (multipart) */
+/** Create a new file in Drive with properties + text content (multipart) */
 export async function driveCreateFile(
   token: string,
   name: string,
@@ -61,7 +62,7 @@ export async function driveCreateFile(
   content: string
 ): Promise<DriveFileMeta> {
   const boundary = 'excelidraw_boundary'
-  const metadata = JSON.stringify({ name, parents: ['appDataFolder'], properties })
+  const metadata = JSON.stringify({ name, parents: ['root'], properties })
 
   const body = [
     `--${boundary}`,
@@ -75,7 +76,7 @@ export async function driveCreateFile(
     `--${boundary}--`,
   ].join('\r\n')
 
-  const url = `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,name,properties,modifiedTime,createdTime`
+  const url = `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,name,properties,modifiedTime,createdTime,webViewLink`
   const res = await checkResponse(
     await fetch(url, {
       method: 'POST',
