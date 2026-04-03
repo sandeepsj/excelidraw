@@ -65,16 +65,12 @@ export function DiagramCard({ diagram, driveToken, onRefresh }: DiagramCardProps
           {diagram.pinned && (
             <Badge className="absolute top-2 left-2 text-xs">Pinned</Badge>
           )}
-          <a
-            href={`https://drive.google.com/file/d/${diagram.id}/view`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-2 right-2 p-1 rounded bg-white/80 hover:bg-white shadow-sm transition-colors"
-            title="Open in Google Drive"
+          <div
+            className="absolute top-2 right-2 p-1 rounded bg-white/80 shadow-sm"
+            title="Stored in your Google Drive (app data)"
           >
             <GoogleDriveIcon className="h-4 w-4" />
-          </a>
+          </div>
         </div>
         <div className="p-3">
           <h3 className="font-medium text-sm truncate">{diagram.title}</h3>
