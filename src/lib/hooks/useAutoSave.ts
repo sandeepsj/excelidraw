@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback } from 'react'
 import { updateDiagramScene } from '@/lib/drive/diagrams'
 import { DriveAuthError } from '@/lib/drive/client'
 
-const SCENE_DEBOUNCE_MS = 3000
+const SCENE_DEBOUNCE_MS = 5 * 60 * 1000 // 5 minutes
 
 interface ExcalidrawAPI {
   getSceneElements: () => unknown[]
@@ -25,6 +25,7 @@ export function useAutoSave(
   const lastSavedJsonRef = useRef<string | null>(null)
   const isDirtyRef = useRef(false)
   const tokenRef = useRef(driveToken)
+  const initialLoadDoneRef = useRef(false)
 
   // Keep tokenRef in sync without re-creating flushScene
   useEffect(() => {
@@ -36,10 +37,18 @@ export function useAutoSave(
     const token = tokenRef.current
     if (!token) return
 
-    const { serializeAsJSON } = await import('@excalidraw/excalidraw')
     const api = excalidrawAPIRef.current
+    const elements = api.getSceneElements()
+
+    // Never save an empty scene — protects against overwriting on refresh/mount
+    if (!elements || elements.length === 0) {
+      isDirtyRef.current = false
+      return
+    }
+
+    const { serializeAsJSON } = await import('@excalidraw/excalidraw')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const json = serializeAsJSON(api.getSceneElements() as any, api.getAppState() as any, api.getFiles() as any, 'local')
+    const json = serializeAsJSON(elements as any, api.getAppState() as any, api.getFiles() as any, 'local')
 
     if (json === lastSavedJsonRef.current) {
       onStatusChange('saved')
@@ -64,6 +73,11 @@ export function useAutoSave(
   }, [diagramId, onStatusChange, onAuthError])
 
   const markDirty = useCallback(() => {
+    // Skip the initial onChange fired by Excalidraw on mount
+    if (!initialLoadDoneRef.current) {
+      initialLoadDoneRef.current = true
+      return
+    }
     isDirtyRef.current = true
     onStatusChange('unsaved')
     if (sceneTimerRef.current) clearTimeout(sceneTimerRef.current)
