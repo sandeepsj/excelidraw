@@ -2,6 +2,7 @@
 
 import { createContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react'
 import { whenReady, requestToken, revokeToken, fetchUserInfo } from '@/lib/auth/gis'
+import { clearFolderCache } from '@/lib/drive/folder'
 import type { AppUser } from '@/types/user'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (driveToken) {
       await revokeToken(driveToken).catch(() => {})
     }
+    clearFolderCache()
     setUser(null)
     setDriveToken(null)
     setStatus('unauthenticated')

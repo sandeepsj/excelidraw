@@ -9,7 +9,10 @@ import {
   DriveAuthError,
   type DriveFileMeta,
 } from './client'
+import { getOrCreateFolder, migrateFilesToFolder } from './folder'
 import type { Diagram, DiagramCreate } from '@/types/diagram'
+
+let migrationDone = false
 
 function fileToDiagram(file: DriveFileMeta): Diagram {
   const p = file.properties ?? {}
@@ -29,7 +32,19 @@ function fileToDiagram(file: DriveFileMeta): Diagram {
 }
 
 export async function listDiagrams(token: string): Promise<Diagram[]> {
-  const files = await driveListFiles(token)
+  const folderId = await getOrCreateFolder(token)
+
+  // Migrate existing root-level files into the folder (once per session)
+  if (!migrationDone) {
+    migrationDone = true
+    try {
+      await migrateFilesToFolder(token, folderId)
+    } catch {
+      // Non-critical — files still work from root, migration will retry next session
+    }
+  }
+
+  const files = await driveListFiles(token, folderId)
   const diagrams = files.map(fileToDiagram)
   // Sort: pinned first, then by updatedAt desc
   return diagrams.sort((a, b) => {
@@ -43,6 +58,7 @@ export async function createDiagram(
   user: AppUser,
   fields: DiagramCreate
 ): Promise<string> {
+  const folderId = await getOrCreateFolder(token)
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
   const file = await driveCreateFile(
@@ -57,7 +73,8 @@ export async function createDiagram(
       ownerEmail: user.email,
       ownerName: user.displayName,
     },
-    JSON.stringify({ elements: [], appState: {}, files: {} })
+    JSON.stringify({ elements: [], appState: {}, files: {} }),
+    folderId
   )
   return file.id
 }
@@ -96,6 +113,7 @@ export async function duplicateDiagram(
   fileId: string,
   user: AppUser
 ): Promise<string> {
+  const folderId = await getOrCreateFolder(token)
   const scene = await getDiagramScene(token, fileId)
   const now = new Date().toISOString()
   const newId = crypto.randomUUID()
@@ -111,7 +129,8 @@ export async function duplicateDiagram(
       ownerEmail: user.email,
       ownerName: user.displayName,
     },
-    scene
+    scene,
+    folderId
   )
   return file.id
 }

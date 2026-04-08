@@ -34,9 +34,11 @@ export interface DriveFileMeta {
 }
 
 /** List all diagram files created by this app */
-export async function driveListFiles(token: string): Promise<DriveFileMeta[]> {
+export async function driveListFiles(token: string, folderId?: string): Promise<DriveFileMeta[]> {
   const fields = 'files(id,name,properties,modifiedTime,createdTime,webViewLink)'
-  const url = `${DRIVE_API}/files?spaces=drive&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime+desc&pageSize=1000`
+  const q = folderId ? `'${folderId}' in parents and trashed=false` : ''
+  const qParam = q ? `&q=${encodeURIComponent(q)}` : ''
+  const url = `${DRIVE_API}/files?spaces=drive&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime+desc&pageSize=1000${qParam}`
   const res = await checkResponse(
     await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
   )
@@ -59,10 +61,11 @@ export async function driveCreateFile(
   token: string,
   name: string,
   properties: DriveFileProperties,
-  content: string
+  content: string,
+  parentId: string = 'root'
 ): Promise<DriveFileMeta> {
   const boundary = 'excelidraw_boundary'
-  const metadata = JSON.stringify({ name, parents: ['root'], properties })
+  const metadata = JSON.stringify({ name, parents: [parentId], properties })
 
   const body = [
     `--${boundary}`,
