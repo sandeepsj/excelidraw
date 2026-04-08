@@ -26,7 +26,19 @@ export default function EditDiagramPage() {
 
   const handleAuthError = useCallback(() => signOut(), [signOut])
 
-  const { markDirty, setExcalidrawAPI } = useAutoSave(id ?? null, driveToken, setSaveStatus, handleAuthError)
+  const { markDirty, setExcalidrawAPI, saveNow } = useAutoSave(id ?? null, driveToken, setSaveStatus, handleAuthError)
+
+  // Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        saveNow()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [saveNow])
 
   const sceneIsEmpty = useMemo(() => {
     if (!initialScene) return true
@@ -106,6 +118,7 @@ export default function EditDiagramPage() {
         panelVisible={panelVisible}
         driveToken={driveToken}
         onTogglePanel={() => setPanelVisible((v) => !v)}
+        onSave={saveNow}
       />
       {sceneIsEmpty && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-sm text-amber-800">

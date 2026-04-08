@@ -96,5 +96,11 @@ export function useAutoSave(
     }
   }, [flushScene])
 
-  return { markDirty, setExcalidrawAPI }
+  const saveNow = useCallback(() => {
+    if (sceneTimerRef.current) clearTimeout(sceneTimerRef.current)
+    isDirtyRef.current = true
+    flushScene()
+  }, [flushScene])
+
+  return { markDirty, setExcalidrawAPI, saveNow }
 }

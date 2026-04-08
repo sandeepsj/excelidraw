@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AutoSaveIndicator } from './AutoSaveIndicator'
 import { updateDiagramMetadata } from '@/lib/drive/diagrams'
-import { ArrowLeft, Share2, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ArrowLeft, Share2, Check, PanelLeftClose, PanelLeftOpen, Save } from 'lucide-react'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
@@ -17,9 +17,10 @@ interface EditorHeaderProps {
   panelVisible: boolean
   driveToken: string
   onTogglePanel: () => void
+  onSave: () => void
 }
 
-export function EditorHeader({ diagramId, title, saveStatus, panelVisible, driveToken, onTogglePanel }: EditorHeaderProps) {
+export function EditorHeader({ diagramId, title, saveStatus, panelVisible, driveToken, onTogglePanel, onSave }: EditorHeaderProps) {
   const navigate = useNavigate()
   const [editingTitle, setEditingTitle] = useState(false)
   const [localTitle, setLocalTitle] = useState(title)
@@ -66,6 +67,17 @@ export function EditorHeader({ diagramId, title, saveStatus, panelVisible, drive
       <AutoSaveIndicator status={saveStatus} />
 
       <div className="ml-auto flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5"
+          onClick={onSave}
+          disabled={saveStatus === 'saved' || saveStatus === 'saving'}
+          title="Save now (Ctrl+S)"
+        >
+          <Save className="h-3.5 w-3.5" />
+          Save
+        </Button>
         <Button
           size="sm"
           variant="ghost"
