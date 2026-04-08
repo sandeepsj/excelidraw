@@ -23,6 +23,30 @@ export const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 })
 
+const STORAGE_KEY = 'excelidraw_auth'
+
+function saveSession(token: string, expiresIn: number, user: AppUser) {
+  const expiresAt = Date.now() + expiresIn * 1000
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, expiresAt, user }))
+}
+
+function loadSession(): { token: string; expiresAt: number; user: AppUser } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    // Require at least 60s remaining to be usable
+    if (data.expiresAt - Date.now() < 60_000) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
   const [driveToken, setDriveToken] = useState<string | null>(null)
@@ -47,32 +71,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleTokenResponse = useCallback(async (accessToken: string, expiresIn: number) => {
     try {
       const info = await fetchUserInfo(accessToken)
-      setUser({ uid: info.sub, email: info.email, displayName: info.name })
+      const appUser = { uid: info.sub, email: info.email, displayName: info.name }
+      setUser(appUser)
       setDriveToken(accessToken)
       setStatus('authenticated')
+      saveSession(accessToken, expiresIn, appUser)
       scheduleRefresh(expiresIn)
     } catch {
       setStatus('unauthenticated')
     }
   }, [scheduleRefresh])
 
-  // On mount: wait for GIS script then try silent token
+  // On mount: restore from localStorage first, then try silent GIS refresh
   useEffect(() => {
     let cancelled = false
+
+    const saved = loadSession()
+    if (saved) {
+      setUser(saved.user)
+      setDriveToken(saved.token)
+      setStatus('authenticated')
+      const remainingSec = Math.floor((saved.expiresAt - Date.now()) / 1000)
+      scheduleRefresh(remainingSec)
+    }
+
     whenReady().then(async () => {
       if (cancelled) return
       try {
         const response = await requestToken('')
         if (!cancelled) await handleTokenResponse(response.access_token, response.expires_in)
       } catch {
-        if (!cancelled) setStatus('unauthenticated')
+        // Silent refresh failed — if we restored from storage, stay authenticated
+        if (!cancelled && !saved) setStatus('unauthenticated')
       }
     })
     return () => {
       cancelled = true
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     }
-  }, [handleTokenResponse])
+  }, [handleTokenResponse, scheduleRefresh])
 
   const signIn = useCallback(async () => {
     await whenReady()
@@ -86,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await revokeToken(driveToken).catch(() => {})
     }
     clearFolderCache()
+    clearSession()
     setUser(null)
     setDriveToken(null)
     setStatus('unauthenticated')
