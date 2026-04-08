@@ -131,6 +131,26 @@ export async function driveUpdateProperties(
   )
 }
 
+/** List revisions of a file, most recent first */
+export async function driveListRevisions(fileId: string, token: string): Promise<{ id: string; modifiedTime: string }[]> {
+  const url = `${DRIVE_API}/files/${fileId}/revisions?fields=revisions(id,modifiedTime)&pageSize=100`
+  const res = await checkResponse(
+    await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+  )
+  const json = await res.json()
+  const revisions = (json.revisions ?? []) as { id: string; modifiedTime: string }[]
+  return revisions.reverse() // most recent first
+}
+
+/** Download content of a specific revision */
+export async function driveGetRevisionContent(fileId: string, revisionId: string, token: string): Promise<string> {
+  const url = `${DRIVE_API}/files/${fileId}/revisions/${revisionId}?alt=media`
+  const res = await checkResponse(
+    await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+  )
+  return res.text()
+}
+
 /** Delete a file permanently */
 export async function driveDeleteFile(fileId: string, token: string): Promise<void> {
   const url = `${DRIVE_API}/files/${fileId}`

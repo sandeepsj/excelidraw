@@ -6,6 +6,8 @@ import {
   driveUpdateContent,
   driveUpdateProperties,
   driveDeleteFile,
+  driveListRevisions,
+  driveGetRevisionContent,
   DriveAuthError,
   type DriveFileMeta,
 } from './client'
@@ -157,4 +159,31 @@ export async function getDiagramMetadata(
     if ((err as Error).name === 'DriveAuthError') throw err
     return null
   }
+}
+
+/**
+ * Restore a diagram from its Drive version history.
+ * Walks revisions (most recent first) and restores the first one
+ * that has actual content (elements.length > 0).
+ * Returns true if restored, false if no valid revision found.
+ */
+export async function restoreDiagramFromHistory(
+  token: string,
+  fileId: string
+): Promise<boolean> {
+  const revisions = await driveListRevisions(fileId, token)
+
+  for (const rev of revisions) {
+    try {
+      const content = await driveGetRevisionContent(fileId, rev.id, token)
+      const parsed = JSON.parse(content)
+      if (parsed.elements && parsed.elements.length > 0) {
+        await driveUpdateContent(fileId, token, content)
+        return true
+      }
+    } catch {
+      continue
+    }
+  }
+  return false
 }

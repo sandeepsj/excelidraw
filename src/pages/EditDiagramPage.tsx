@@ -1,12 +1,14 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { getDiagramMetadata, getDiagramScene } from '@/lib/drive/diagrams'
+import { getDiagramMetadata, getDiagramScene, restoreDiagramFromHistory } from '@/lib/drive/diagrams'
 import { useAutoSave } from '@/lib/hooks/useAutoSave'
 import { ExcalidrawEditor } from '@/components/editor/ExcalidrawEditor'
 import { EditorHeader } from '@/components/editor/EditorHeader'
+import { Button } from '@/components/ui/button'
 import type { Diagram } from '@/types/diagram'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
+import { History } from 'lucide-react'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
@@ -20,10 +22,39 @@ export default function EditDiagramPage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [notFound, setNotFound] = useState(false)
   const [panelVisible, setPanelVisible] = useState(false)
+  const [restoring, setRestoring] = useState(false)
 
   const handleAuthError = useCallback(() => signOut(), [signOut])
 
   const { markDirty, setExcalidrawAPI } = useAutoSave(id ?? null, driveToken, setSaveStatus, handleAuthError)
+
+  const sceneIsEmpty = useMemo(() => {
+    if (!initialScene) return true
+    try {
+      const parsed = JSON.parse(initialScene)
+      return !parsed.elements || parsed.elements.length === 0
+    } catch {
+      return true
+    }
+  }, [initialScene])
+
+  const handleRestore = useCallback(async () => {
+    if (!id || !driveToken) return
+    setRestoring(true)
+    try {
+      const restored = await restoreDiagramFromHistory(driveToken, id)
+      if (restored) {
+        // Reload the page to pick up restored content
+        window.location.reload()
+      } else {
+        alert('No previous version with content found in Drive history.')
+      }
+    } catch (err) {
+      alert('Restore failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setRestoring(false)
+    }
+  }, [id, driveToken])
 
   useEffect(() => {
     if (!user || !driveToken || !id) return
@@ -76,6 +107,21 @@ export default function EditDiagramPage() {
         driveToken={driveToken}
         onTogglePanel={() => setPanelVisible((v) => !v)}
       />
+      {sceneIsEmpty && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-sm text-amber-800">
+          <span>This diagram appears empty. It may have been accidentally overwritten.</span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-amber-300 hover:bg-amber-100"
+            onClick={handleRestore}
+            disabled={restoring}
+          >
+            <History className="h-3.5 w-3.5" />
+            {restoring ? 'Restoring...' : 'Restore from history'}
+          </Button>
+        </div>
+      )}
       <div className="flex-1 min-h-0">
         <ExcalidrawEditor
           initialScene={initialScene}
