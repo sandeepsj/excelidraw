@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useCallback, useRef, useEffect } from 'react'
+import { useMemo, useCallback, useRef, useEffect, useState } from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
+import { TextListToolbar } from './TextListToolbar'
 
 const DEFAULT_SHAPE_STROKE_WIDTH = 2
 const DEFAULT_FREEDRAW_STROKE_WIDTH = 0.5
@@ -35,6 +36,7 @@ export default function ExcalidrawInner({
   const freedrawStrokeWidthRef = useRef<number>(DEFAULT_FREEDRAW_STROKE_WIDTH)
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [apiReady, setApiReady] = useState<ExcalidrawImperativeAPI | null>(null)
 
   const initialData = useMemo(() => {
     if (!initialScene) return undefined
@@ -89,6 +91,7 @@ export default function ExcalidrawInner({
 
   const handleAPIReady = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api
+    setApiReady(api)
     onAPIReady(api)
     // Lock whatever tool is active on load
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,6 +155,9 @@ export default function ExcalidrawInner({
           },
         }}
       />
+      {!readOnly && (
+        <TextListToolbar api={apiReady} containerRef={containerRef} />
+      )}
     </div>
   )
 }
