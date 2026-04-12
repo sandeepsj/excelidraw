@@ -78,9 +78,27 @@ export default function EditDiagramPage() {
       setDiagram(d)
       try {
         const scene = await getDiagramScene(driveToken, id)
-        setInitialScene(scene)
+
+        // Check for a locally stashed scene (saved when token expired mid-edit)
+        const stashKey = `excelidraw_stash_${id}`
+        const stashed = localStorage.getItem(stashKey)
+        if (stashed) {
+          // Prefer the stash — it has more recent unsaved changes
+          localStorage.removeItem(stashKey)
+          setInitialScene(stashed)
+        } else {
+          setInitialScene(scene)
+        }
       } catch {
-        setInitialScene(null)
+        // Even if Drive fetch fails, try the stash
+        const stashKey = `excelidraw_stash_${id}`
+        const stashed = localStorage.getItem(stashKey)
+        if (stashed) {
+          localStorage.removeItem(stashKey)
+          setInitialScene(stashed)
+        } else {
+          setInitialScene(null)
+        }
       }
     }
     load()

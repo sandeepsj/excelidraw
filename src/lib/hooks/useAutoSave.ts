@@ -62,8 +62,12 @@ export function useAutoSave(
       lastSavedJsonRef.current = json
       isDirtyRef.current = false
       onStatusChange('saved')
+      // Clear any stashed scene on successful save
+      localStorage.removeItem(`excelidraw_stash_${diagramId}`)
     } catch (err) {
       if (err instanceof DriveAuthError) {
+        // Stash unsaved scene so it can be recovered after re-login
+        localStorage.setItem(`excelidraw_stash_${diagramId}`, json)
         onAuthError()
       } else {
         console.error('Auto-save failed:', err)
@@ -88,13 +92,27 @@ export function useAutoSave(
     excalidrawAPIRef.current = api
   }, [])
 
-  // Flush on unmount
+  // Stash unsaved scene to localStorage as a safety net (e.g. before unmount)
+  const stashScene = useCallback(async () => {
+    if (!diagramId || !excalidrawAPIRef.current || !isDirtyRef.current) return
+    const api = excalidrawAPIRef.current
+    const elements = api.getSceneElements()
+    if (!elements || elements.length === 0) return
+    const { serializeAsJSON } = await import('@excalidraw/excalidraw')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = serializeAsJSON(elements as any, api.getAppState() as any, api.getFiles() as any, 'local')
+    if (json !== lastSavedJsonRef.current) {
+      localStorage.setItem(`excelidraw_stash_${diagramId}`, json)
+    }
+  }, [diagramId])
+
+  // Flush on unmount — if flush fails, stash locally
   useEffect(() => {
     return () => {
       if (sceneTimerRef.current) clearTimeout(sceneTimerRef.current)
-      flushScene()
+      flushScene().catch(() => stashScene())
     }
-  }, [flushScene])
+  }, [flushScene, stashScene])
 
   const saveNow = useCallback(() => {
     if (sceneTimerRef.current) clearTimeout(sceneTimerRef.current)
