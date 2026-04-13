@@ -89,7 +89,8 @@ export default function ExcalidrawInner({
     }
   }, [panelVisible])
 
-  const handleAPIReady = useCallback((api: ExcalidrawImperativeAPI) => {
+  const handleAPIReady = useCallback((api: ExcalidrawImperativeAPI | null) => {
+    if (!api) return
     apiRef.current = api
     setApiReady(api)
     onAPIReady(api)
@@ -144,7 +145,7 @@ export default function ExcalidrawInner({
   return (
     <div ref={containerRef} className="w-full h-full">
       <Excalidraw
-        excalidrawAPI={handleAPIReady}
+        onExcalidrawAPI={handleAPIReady}
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={readOnly}

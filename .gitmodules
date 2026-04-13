@@ -1,0 +1,3 @@
+[submodule "excalidraw-fork"]
+	path = excalidraw-fork
+	url = https://github.com/sandeepsj/excalidraw.git
